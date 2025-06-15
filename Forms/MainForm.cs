@@ -22,6 +22,35 @@ namespace WinFormsApp1.Forms
             comboBoxAlgorithm.SelectedIndex = 0;
         }
 
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            if (_cts != null && !_cts.IsCancellationRequested)
+            {
+                _cts.Cancel();
+                labelStatus.Text = "Cancelling...";
+                labelStatus.ForeColor = Color.Orange;
+                btnCancel.Enabled = false;
+                btnPauseResume.Enabled = false;
+            }
+        }
+
+        private void btnSelectFolder_Click(object sender, EventArgs e)
+        {
+            using var folderDialog = new FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == DialogResult.OK)
+            {
+                var folderPath = folderDialog.SelectedPath;
+                // You can either add all files in this folder to selectedFiles and listBoxFiles
+                var files = Directory.GetFiles(folderPath);
+                selectedFiles.Clear();
+                selectedFiles.AddRange(files);
+                listBoxFiles.Items.Clear();
+                listBoxFiles.Items.AddRange(files);
+                labelStatus.Text = $"{files.Length} files selected from folder.";
+                labelStatus.ForeColor = Color.LightGreen;
+            }
+        }
+
         private void btnBrowse_Click(object sender, EventArgs e)
         {
             using OpenFileDialog dialog = new() { Multiselect = true, Title = "Select Files" };

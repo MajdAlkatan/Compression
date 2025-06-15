@@ -30,7 +30,7 @@
                     FlatStyle = FlatStyle.Flat,
                     Enabled = false
                 };
-                // btnCancel.Click += btnCancel_Click;
+                btnCancel.Click += btnCancel_Click;
                 Controls.Add(btnCancel);
                 
                 btnPauseResume = new Button
@@ -89,7 +89,7 @@
                 btnSelectFolder.BackColor = Color.FromArgb(0, 173, 181);
                 btnSelectFolder.FlatAppearance.BorderSize = 0;
                 btnSelectFolder.Cursor = Cursors.Hand;
-                // btnSelectFolder.Click += btnSelectFolder_Click;
+                btnSelectFolder.Click += btnSelectFolder_Click;
                 this.Controls.Add(btnSelectFolder);
 
                 // Algorithm ComboBox with Label
