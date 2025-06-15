@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AForge" Version="2.2.5" />
+      <PackageReference Include="AForge.Imaging" Version="2.2.5" />
+      <PackageReference Include="AForge.Math" Version="2.2.5" />
+      <PackageReference Include="AForge.Video" Version="2.2.5" />
+      <PackageReference Include="Emgu.CV" Version="4.10.0.5680" />
+      <PackageReference Include="Emgu.CV.Bitmap" Version="4.10.0.5680" />
+      <PackageReference Include="Emgu.CV.runtime.windows" Version="4.10.0.5680" />
+      <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta2" />
+      <PackageReference Include="Microsoft.Windows.Compatibility" Version="10.0.0-preview.5.25277.114" />
+      <PackageReference Include="NAudio" Version="2.2.1" />
+      <PackageReference Include="OxyPlot.WindowsForms" Version="2.2.0" />
+      <PackageReference Include="SixLabors.ImageSharp" Version="3.1.10" />
+      <PackageReference Include="System.Drawing.Common" Version="10.0.0-preview.5.25277.114" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Forms\SelectFileFromArchiveForm.cs">
+        <SubType>Form</SubType>
+      </Compile>
+    </ItemGroup>
+
+</Project>
