@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
+﻿
 namespace WinFormsApp1.Compression
 {
     public static partial class CompressionManager
     {
-        // استرجاع كل الملفات (مسار نسبي + كامل)
         public static List<(string RelativePath, string FullPath)> GetFilesRecursively(string folderPath)
         {
             int baseLen = folderPath.TrimEnd(Path.DirectorySeparatorChar).Length + 1;
@@ -17,7 +12,6 @@ namespace WinFormsApp1.Compression
                 .ToList();
         }
 
-        // إنشاء أرشيف من مجلد كامل
         public static void CreateArchiveFromFolder(string folderPath,
             string archivePath,
             string algorithm = "Huffman")

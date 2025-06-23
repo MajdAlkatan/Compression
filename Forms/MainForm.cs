@@ -1,11 +1,4 @@
 using WinFormsApp1.Compression;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace WinFormsApp1.Forms
 {
@@ -40,7 +33,6 @@ namespace WinFormsApp1.Forms
             if (folderDialog.ShowDialog() == DialogResult.OK)
             {
                 var folderPath = folderDialog.SelectedPath;
-                // You can either add all files in this folder to selectedFiles and listBoxFiles
                 var files = Directory.GetFiles(folderPath);
                 selectedFiles.Clear();
                 selectedFiles.AddRange(files);
@@ -88,7 +80,6 @@ namespace WinFormsApp1.Forms
         {
             if (!isPaused)
             {
-                // نوقف العملية مؤقتاً
                 pauseEvent.Reset();
                 btnPauseResume.Text = "Resume";
                 isPaused = true;
@@ -97,7 +88,6 @@ namespace WinFormsApp1.Forms
             }
             else
             {
-                // نستأنف العملية
                 pauseEvent.Set();
                 btnPauseResume.Text = "Pause";
                 isPaused = false;
@@ -121,11 +111,10 @@ namespace WinFormsApp1.Forms
 
             string algo = comboBoxAlgorithm.SelectedItem?.ToString() ?? "Huffman";
 
-            // ⇢⇢⇢  تفعيل أزرار الإيقاف المؤقت والإلغاء  ⇠⇠⇠
             btnPauseResume.Enabled = true;
             btnPauseResume.Text = "Pause";
             isPaused = false;
-            pauseEvent.Set(); // ابدأ بحالة “تشغيل”
+            pauseEvent.Set();
             _cts = new CancellationTokenSource();
             btnCancel.Enabled = true;
             // -------------------------------------------------
@@ -133,7 +122,7 @@ namespace WinFormsApp1.Forms
             if (radioButtonIndividualFiles.Checked)
             {
                 using var folderDialog = new FolderBrowserDialog
-                    { Description = "Select output folder for compressed files" };
+                { Description = "Select output folder for compressed files" };
 
                 if (folderDialog.ShowDialog() != DialogResult.OK)
                 {
@@ -141,23 +130,37 @@ namespace WinFormsApp1.Forms
                     labelStatus.ForeColor = Color.Orange;
                     progressBar.Visible = false;
 
-                    // ⇢ تعطيل الأزرار لأن العملية ألغيت قبل البدء
                     btnPauseResume.Enabled = false;
                     btnCancel.Enabled = false;
                     return;
                 }
 
                 string outputFolder = folderDialog.SelectedPath;
-
-                var ratios = await Task.Run(() =>
-                    CompressionManager.CompressFiles(selectedFiles,
-                        algo,
-                        outputFolder,
-                        _cts.Token,
-                        pauseEvent)); // لاحِظ تمرير pauseEvent
+                Dictionary<string, double> ratios;
+                try
+                {
+                    ratios = await Task.Run(async () =>
+                    {
+                        return await CompressionManager.CompressFilesAsync(selectedFiles,
+                            algo,
+                            outputFolder,
+                            _cts.Token,
+                            pauseEvent);
+                    }
+                    );
+                }
+                catch (OperationCanceledException)
+                {
+                    labelStatus.Text = "Cancelled";
+                    labelStatus.ForeColor = Color.Red;
+                    btnCancel.Enabled = false;
+                    btnPauseResume.Enabled = false;
+                    progressBar.Visible = false;
+                    return;
+                }
 
                 progressBar.Visible = false;
-                btnPauseResume.Enabled = false; // ⇢ إيقاف الزرَّين بعد الانتهاء
+                btnPauseResume.Enabled = false;
                 btnCancel.Enabled = false;
 
                 var msg = string.Join(Environment.NewLine,
@@ -192,11 +195,13 @@ namespace WinFormsApp1.Forms
                 try
                 {
                     await Task.Run(() =>
-                        CompressionManager.CreateArchive(selectedFiles,
-                            archivePath,
-                            algo,
-                            _cts.Token,
-                            pauseEvent)); // تمرير pauseEvent
+                    {
+                         CompressionManager.CreateArchive(selectedFiles,
+                          archivePath,
+                          algo,
+                          _cts.Token,
+                          pauseEvent);
+                    });
 
                     labelStatus.Text = $"Compression completed successfully.\nArchive saved at:\n{archivePath}";
                     labelStatus.ForeColor = Color.Green;
@@ -216,7 +221,7 @@ namespace WinFormsApp1.Forms
                 finally
                 {
                     progressBar.Visible = false;
-                    btnPauseResume.Enabled = false; // ⇢ إيقاف الأزرار بعد نهاية الفرع
+                    btnPauseResume.Enabled = false;
                     btnCancel.Enabled = false;
                 }
             }
@@ -229,7 +234,6 @@ namespace WinFormsApp1.Forms
 
             if (radioButtonIndividualFiles.Checked)
             {
-                // فك الضغط القديم: ملفات .cmp منفردة
                 var cmpFiles = selectedFiles.FindAll(f => f.EndsWith(".cmp"));
                 if (cmpFiles.Count == 0)
                 {
@@ -244,8 +248,33 @@ namespace WinFormsApp1.Forms
                 _cts = new CancellationTokenSource();
                 btnCancel.Enabled = true;
 
-                await Task.Run(() => CompressionManager.DecompressFiles(cmpFiles, algo, _cts.Token));
+                string archivePath = selectedFiles[0];
 
+                string outputFolderPath;
+                using var folderDialog = new FolderBrowserDialog();
+                if (folderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    var folderPath = folderDialog.SelectedPath;
+                    outputFolderPath = folderPath;
+                }
+                else
+                {
+                    return;
+                }
+
+                using var fs = new FileStream(archivePath, FileMode.Open, FileAccess.Read);
+                using var br = new BinaryReader(fs);
+
+                var type = (StorageType)br.ReadInt32();
+
+                if (type == StorageType.ARCHIVE)
+                {
+                    await Task.Run(async () => await CompressionManager.ExtractAllFilesAsync(archivePath, outputFolderPath, _cts.Token, pauseEvent));
+                }
+                else
+                {
+                    await Task.Run(async () => await CompressionManager.DecompressFilesAsync(selectedFiles, _cts.Token));
+                }
                 progressBar.Visible = false;
 
                 labelStatus.Text = "Decompression completed successfully.";
@@ -253,7 +282,6 @@ namespace WinFormsApp1.Forms
             }
             else if (radioButtonSingleArchive.Checked)
             {
-                // فك ضغط أرشيف واحد: نطلب من المستخدم اختيار ملف الأرشيف أولاً
                 if (selectedFiles.Count != 1 || !selectedFiles[0].EndsWith(".cmp"))
                 {
                     MessageBox.Show("Please select a single .cmp archive file to decompress.", "Warning",
@@ -263,7 +291,6 @@ namespace WinFormsApp1.Forms
 
                 string archivePath = selectedFiles[0];
 
-                // عرض قائمة الملفات داخل الأرشيف للمستخدم ليختار أي ملف يستخرج
                 var filesInArchive = CompressionManager.ListArchive(archivePath);
 
                 using (var selectFileForm = new SelectFileFromArchiveForm(filesInArchive))
@@ -277,8 +304,8 @@ namespace WinFormsApp1.Forms
                         progressBar.Visible = true;
 
                         await Task.Run(() =>
-                                CompressionManager.ExtractSingleFile(archivePath, selectedFile, algo, outputDir: "",
-                                    token: _cts.Token),
+                                CompressionManager.ExtractSingleFile(archivePath, selectedFile, outputDir: "",
+                                    token: _cts.Token, pauseEvent),
                             _cts.Token);
                         progressBar.Visible = false;
                         labelStatus.Text = $"File '{selectedFile}' extracted successfully.";
